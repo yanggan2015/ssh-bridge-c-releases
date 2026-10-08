@@ -135,14 +135,31 @@ body {
 .scan-h .chev { color: var(--muted); font-size: 11px; transition: transform .15s; }
 .scan-panel.collapsed .scan-h .chev { transform: rotate(-90deg); }
 .scan-body { padding: 0 10px 10px; display: flex; flex-direction: column; gap: 8px; }
-.scan-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.scan-opts { display: flex; flex-direction: column; gap: 5px; }
+.scan-opt {
+  display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text);
+  cursor: pointer; user-select: none; padding: 2px 0;
+}
+.scan-opt input { accent-color: var(--accent); width: 14px; height: 14px; margin: 0; flex-shrink: 0; }
+.scan-opt .hint { color: var(--muted); font-size: 10px; margin-left: auto; }
 .scan-add { display: flex; gap: 6px; }
 .scan-add input {
   flex: 1; min-width: 0; background: rgba(0,0,0,.25); color: var(--text);
   border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; font-size: 12px; outline: none;
 }
 .scan-add input:focus { border-color: rgba(82,109,255,.45); }
+.scan-add.disabled { opacity: .45; pointer-events: none; }
+.scan-auto {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 6px 8px; border-radius: 8px; background: rgba(0,0,0,.18); border: 1px solid var(--line);
+}
+.scan-auto label { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; margin: 0; }
+.scan-auto select {
+  background: rgba(0,0,0,.25); color: var(--text); border: 1px solid var(--line);
+  border-radius: 999px; padding: 4px 8px; font-size: 12px; outline: none;
+}
 .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chips-label { font-size: 10px; color: var(--muted); width: 100%; margin-top: 2px; }
 .chip {
   display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px;
   border-radius: 999px; background: rgba(255,255,255,.06); border: 1px solid var(--line);
@@ -233,7 +250,7 @@ body.session-open .session-bar .label { display: none; }
   <div class="hdr-actions">
     <div class="badge idle" id="statusBadge"><span class="badge-dot"></span><span id="statusText">就绪</span></div>
     <button type="button" class="btn" id="btnClear">清空</button>
-    <button type="button" class="btn primary" id="btnScanLocal">扫描本局域网</button>
+    <button type="button" class="btn primary" id="btnScan">扫描</button>
   </div>
 </header>
 
@@ -246,25 +263,43 @@ body.session-open .session-bar .label { display: none; }
       </div>
     </div>
 
-    <div class="scan-panel collapsed" id="scanPanel">
+    <div class="scan-panel" id="scanPanel">
       <div class="scan-h" id="scanToggle">
-        <span class="t">扫描 / 网段</span>
+        <span class="t">扫描范围（可多选）</span>
         <span class="chev">▾</span>
       </div>
       <div class="scan-body">
-        <div class="scan-actions">
-          <button type="button" class="btn sm primary" id="btnScanLocal2">本局域网</button>
-          <button type="button" class="btn sm" id="btnScanAll">本机+指定网段</button>
+        <div class="scan-opts">
+          <label class="scan-opt"><input type="checkbox" id="optSelf" />本机<span class="hint">本机网卡 IP</span></label>
+          <label class="scan-opt"><input type="checkbox" id="optLocalLans" checked />本机所有局域网<span class="hint">各 NIC 广播</span></label>
+          <label class="scan-opt"><input type="checkbox" id="optSubnets" />指定局域网</label>
+          <label class="scan-opt"><input type="checkbox" id="optHosts" />指定主机列表</label>
         </div>
-        <div class="scan-add">
-          <input id="subnetInput" type="text" placeholder="如 192.168.10.0/24" />
+        <div class="scan-add" id="rowSubnet">
+          <input id="subnetInput" type="text" placeholder="网段 如 192.168.10.0/24" />
           <button type="button" class="btn sm" id="btnAddSubnet">添加</button>
         </div>
         <div class="chips" id="subnetChips"></div>
+        <div class="scan-add" id="rowHost">
+          <input id="hostInput" type="text" placeholder="主机 如 192.168.1.54" />
+          <button type="button" class="btn sm" id="btnAddHost">添加</button>
+        </div>
+        <div class="chips" id="hostChips"></div>
+        <div class="scan-auto">
+          <label><input type="checkbox" id="optAuto" />定时刷新</label>
+          <select id="autoInterval" title="刷新间隔">
+            <option value="5">每 5 秒</option>
+            <option value="10" selected>每 10 秒</option>
+            <option value="30">每 30 秒</option>
+            <option value="60">每 60 秒</option>
+            <option value="120">每 2 分钟</option>
+          </select>
+        </div>
+        <button type="button" class="btn sm primary" id="btnScan2" style="align-self:stretch">按所选范围扫描</button>
       </div>
     </div>
 
-    <div id="status">点击「扫描本局域网」开始</div>
+    <div id="status">勾选范围后点「扫描」</div>
     <div id="list"></div>
   </aside>
 
@@ -292,19 +327,40 @@ const statusBadge = document.getElementById('statusBadge');
 const frame = document.getElementById('frame');
 const empty = document.getElementById('empty');
 const chipsEl = document.getElementById('subnetChips');
+const hostChipsEl = document.getElementById('hostChips');
 const sessionUrl = document.getElementById('sessionUrl');
 const btnCloseSession = document.getElementById('btnCloseSession');
 const layout = document.getElementById('layout');
 const scanPanel = document.getElementById('scanPanel');
+const optSelf = document.getElementById('optSelf');
+const optLocalLans = document.getElementById('optLocalLans');
+const optSubnets = document.getElementById('optSubnets');
+const optHosts = document.getElementById('optHosts');
+const optAuto = document.getElementById('optAuto');
+const autoInterval = document.getElementById('autoInterval');
 
 let devices = [];
 let subnets = [];
+let hosts = [];
+let scanning = false;
+let autoTimer = null;
 try {
   subnets = JSON.parse(localStorage.getItem('wm_subnets') || '[]');
   if (!Array.isArray(subnets)) subnets = [];
+  hosts = JSON.parse(localStorage.getItem('wm_hosts') || '[]');
+  if (!Array.isArray(hosts)) hosts = [];
   if (localStorage.getItem('wm_side_collapsed') === '1') layout.classList.add('side-collapsed');
-  if (localStorage.getItem('wm_scan_open') === '1') scanPanel.classList.remove('collapsed');
-} catch (e) { subnets = []; }
+  if (localStorage.getItem('wm_scan_open') === '0') scanPanel.classList.add('collapsed');
+  var so = JSON.parse(localStorage.getItem('wm_scan_opts') || '{}');
+  if (so && typeof so === 'object') {
+    if ('self' in so) optSelf.checked = !!so.self;
+    if ('local' in so) optLocalLans.checked = !!so.local;
+    if ('subnets' in so) optSubnets.checked = !!so.subnets;
+    if ('hosts' in so) optHosts.checked = !!so.hosts;
+    if ('auto' in so) optAuto.checked = !!so.auto;
+    if (so.interval) autoInterval.value = String(so.interval);
+  }
+} catch (e) { subnets = []; hosts = []; }
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
@@ -318,24 +374,55 @@ function setStatus(msg, kind) {
   statusBadge.className = 'badge ' + (kind || 'idle');
 }
 
+function saveScanOpts() {
+  try {
+    localStorage.setItem('wm_scan_opts', JSON.stringify({
+      self: optSelf.checked,
+      local: optLocalLans.checked,
+      subnets: optSubnets.checked,
+      hosts: optHosts.checked,
+      auto: optAuto.checked,
+      interval: Number(autoInterval.value) || 10
+    }));
+  } catch (e) {}
+  document.getElementById('rowSubnet').classList.toggle('disabled', !optSubnets.checked);
+  document.getElementById('rowHost').classList.toggle('disabled', !optHosts.checked);
+  setupAutoRefresh();
+}
+
 function saveSubnets() {
   localStorage.setItem('wm_subnets', JSON.stringify(subnets));
   renderChips();
 }
 
+function saveHosts() {
+  localStorage.setItem('wm_hosts', JSON.stringify(hosts));
+  renderHostChips();
+}
+
 function renderChips() {
   if (!subnets.length) {
-    chipsEl.innerHTML = '<span class="hint" style="font-size:11px;color:var(--muted)">暂无指定网段</span>';
+    chipsEl.innerHTML = '<span class="chips-label">指定网段：暂无</span>';
     return;
   }
-  chipsEl.innerHTML = subnets.map((s, i) =>
-    `<span class="chip">${esc(s)} <button type="button" data-rm="${i}" title="移除">×</button></span>`
+  chipsEl.innerHTML = '<span class="chips-label">指定网段</span>' + subnets.map((s, i) =>
+    `<span class="chip">${esc(s)} <button type="button" data-rm-subnet="${i}" title="移除">×</button></span>`
+  ).join('');
+}
+
+function renderHostChips() {
+  if (!hosts.length) {
+    hostChipsEl.innerHTML = '<span class="chips-label">指定主机：暂无</span>';
+    return;
+  }
+  hostChipsEl.innerHTML = '<span class="chips-label">指定主机</span>' + hosts.map((s, i) =>
+    `<span class="chip">${esc(s)} <button type="button" data-rm-host="${i}" title="移除">×</button></span>`
   ).join('');
 }
 
 function render() {
   if (!devices.length) {
-    listEl.innerHTML = '<div class="empty-side">暂无设备<br>先扫描本局域网</div>';
+    listEl.innerHTML = '<div class="empty-side">暂无设备<br>勾选范围后扫描</div>';
     return;
   }
   listEl.innerHTML = devices.map((d, di) => {
@@ -436,7 +523,14 @@ function mergeDevices(arr) {
   render();
 }
 
-async function doScan(targets, label) {
+function replaceDevices(arr) {
+  devices = (arr || []).slice().sort((a, b) => String(a.host).localeCompare(String(b.host)));
+  render();
+}
+
+async function doScan(targets, label, replace) {
+  if (scanning) return;
+  scanning = true;
   setStatus(label || '正在扫描…', 'busy');
   try {
     if (typeof window.discover !== 'function') {
@@ -444,11 +538,35 @@ async function doScan(targets, label) {
     }
     const raw = await window.discover(1500, targets);
     const arr = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    mergeDevices(arr);
-    setStatus('扫描完成 · ' + devices.length + ' 台设备', devices.length ? '' : 'idle');
+    if (replace) replaceDevices(arr);
+    else mergeDevices(arr);
+    var suffix = optAuto.checked ? ' · 自动刷新中' : '';
+    setStatus('扫描完成 · ' + devices.length + ' 台设备' + suffix, devices.length ? '' : 'idle');
   } catch (err) {
     setStatus('扫描失败: ' + (err && err.message ? err.message : err), 'err');
+  } finally {
+    scanning = false;
   }
+}
+
+function setupAutoRefresh() {
+  if (autoTimer) {
+    clearInterval(autoTimer);
+    autoTimer = null;
+  }
+  if (!optAuto.checked) return;
+  var sec = Number(autoInterval.value) || 10;
+  if (sec < 5) sec = 5;
+  autoTimer = setInterval(function() {
+    if (scanning) return;
+    try {
+      var s = buildTargets();
+      doScan(s.targets, '自动刷新…', true);
+    } catch (err) {
+      /* keep timer; show once */
+      setStatus(err && err.message ? err.message : String(err), 'err');
+    }
+  }, sec * 1000);
 }
 
 /* Direct handlers — WebView2 set_html can target text nodes; avoid fragile instanceof checks. */
@@ -475,10 +593,20 @@ chipsEl.onclick = function(e) {
   var el = e.target;
   if (el && el.nodeType === 3) el = el.parentElement;
   if (!el || !el.closest) return;
-  var btn = el.closest('[data-rm]');
+  var btn = el.closest('[data-rm-subnet]');
   if (!btn) return;
-  subnets.splice(Number(btn.getAttribute('data-rm')), 1);
+  subnets.splice(Number(btn.getAttribute('data-rm-subnet')), 1);
   saveSubnets();
+};
+
+hostChipsEl.onclick = function(e) {
+  var el = e.target;
+  if (el && el.nodeType === 3) el = el.parentElement;
+  if (!el || !el.closest) return;
+  var btn = el.closest('[data-rm-host]');
+  if (!btn) return;
+  hosts.splice(Number(btn.getAttribute('data-rm-host')), 1);
+  saveHosts();
 };
 
 document.getElementById('scanToggle').onclick = function() {
@@ -504,30 +632,74 @@ document.getElementById('btnClear').onclick = function() {
   setStatus('列表已清空', 'idle');
 };
 
+[optSelf, optLocalLans, optSubnets, optHosts].forEach(function(el) {
+  el.onchange = saveScanOpts;
+});
+optAuto.onchange = saveScanOpts;
+autoInterval.onchange = saveScanOpts;
+
 document.getElementById('btnAddSubnet').onclick = function() {
   var v = (document.getElementById('subnetInput').value || '').trim();
   if (!v) return;
   if (subnets.indexOf(v) < 0) subnets.push(v);
   document.getElementById('subnetInput').value = '';
+  optSubnets.checked = true;
+  saveScanOpts();
   saveSubnets();
   scanPanel.classList.remove('collapsed');
 };
 
-function scanLocal() { doScan(['local'], '正在扫描本局域网…'); }
-document.getElementById('btnScanLocal').onclick = scanLocal;
-document.getElementById('btnScanLocal2').onclick = scanLocal;
-document.getElementById('btnScanAll').onclick = function() {
-  doScan(['local'].concat(subnets), '正在扫描本机 + 指定网段…');
+document.getElementById('btnAddHost').onclick = function() {
+  var v = (document.getElementById('hostInput').value || '').trim();
+  if (!v) return;
+  if (hosts.indexOf(v) < 0) hosts.push(v);
+  document.getElementById('hostInput').value = '';
+  optHosts.checked = true;
+  saveScanOpts();
+  saveHosts();
+  scanPanel.classList.remove('collapsed');
 };
+
+function buildTargets() {
+  var targets = [];
+  var parts = [];
+  if (optSelf.checked) { targets.push('self'); parts.push('本机'); }
+  if (optLocalLans.checked) { targets.push('local'); parts.push('本机局域网'); }
+  if (optSubnets.checked) {
+    if (!subnets.length) throw new Error('已勾选「指定局域网」，请先添加网段');
+    targets = targets.concat(subnets);
+    parts.push('网段×' + subnets.length);
+  }
+  if (optHosts.checked) {
+    if (!hosts.length) throw new Error('已勾选「指定主机」，请先添加主机');
+    targets = targets.concat(hosts);
+    parts.push('主机×' + hosts.length);
+  }
+  if (!targets.length) throw new Error('请至少勾选一种扫描范围');
+  return { targets: targets, label: '正在扫描：' + parts.join(' + ') + '…' };
+}
+
+function scanSelected() {
+  try {
+    var s = buildTargets();
+    doScan(s.targets, s.label, false);
+  } catch (err) {
+    setStatus(err && err.message ? err.message : String(err), 'err');
+  }
+}
+document.getElementById('btnScan').onclick = scanSelected;
+document.getElementById('btnScan2').onclick = scanSelected;
 
 btnCloseSession.onclick = function() {
   closeSession();
   setStatus('会话已关闭', 'idle');
 };
 
+saveScanOpts();
 renderChips();
+renderHostChips();
 render();
-setStatus('就绪 · 点「扫描本局域网」', 'idle');
+setStatus(optAuto.checked ? '就绪 · 定时刷新已开启' : '就绪 · 可多选范围后扫描', 'idle');
 </script>
 </body>
 </html>

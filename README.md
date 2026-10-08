@@ -24,6 +24,6 @@ cd ssh-bridge-c-releases/ssh_bridge_manager
 
 Run `run.bat` / `ssh_bridge_manager.exe`, or `../windows_manager/windows_manager.exe` for LAN discovery.
 
-Latest build on this branch: **`20260907-115646`** (valid ~180 days from compile).
+Latest build on this branch: **`20261008-095435`** (valid ~180 days from compile).
 
 Contact: yanggan2015@foxmail.com
