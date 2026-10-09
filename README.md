@@ -23,6 +23,6 @@ cd ssh-bridge-c-releases/ssh_bridge_manager
 
 Run `./run.sh` or `./ssh_bridge_manager`.
 
-Latest build on this branch: **`20261009-010639`** (valid ~180 days from compile).
+Latest build on this branch: **`20261009-013338`** (valid ~180 days from compile).
 
 Contact: yanggan2015@foxmail.com
