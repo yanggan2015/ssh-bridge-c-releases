@@ -20,13 +20,12 @@ Windows 便携版。本包不含源码。
 
 | 文件 | 说明 |
 |------|------|
-| `ssh_bridge_desktop.exe` | **推荐入口**：WebView 窗口 + 系统托盘；自动拉起无窗口后端 |
+| `ssh_bridge_desktop.exe` | **推荐入口**：系统托盘 + 默认浏览器打开 WebUI；自动拉起无窗口后端 |
 | `ssh_bridge_manager.exe` | 无 UI 后端（由桌面壳或脚本启动；`CREATE_NO_WINDOW`） |
 | `run.bat` | 启动 `ssh_bridge_manager.exe` |
-| `*.dll` / `WebView2Loader.dll` | 运行时依赖 |
+| `*.dll` | manager 运行时依赖 |
+| `WebView2Loader.dll` | 仅 `windows_manager`（局域网发现 GUI）需要 |
 | `README.md` / `使用说明.md` | 说明文档 |
-
-需要本机 **WebView2 Runtime**（Win11 通常自带）。
 
 ---
 
@@ -34,7 +33,7 @@ Windows 便携版。本包不含源码。
 
 1. 解压 zip。  
 2. 仅后端：`run.bat` / `ssh_bridge_manager.exe`。  
-3. WebView + 托盘：`ssh_bridge_desktop.exe`；关窗进托盘，托盘可再开窗口/开网页/开机自启/退出。
+3. 托盘入口：`ssh_bridge_desktop.exe`；启动后打开浏览器，托盘可开网页/开机自启/退出。
 
 ```bat
 run.bat
@@ -68,8 +67,7 @@ ssh_bridge_desktop.exe --smoke-test
 
 | 菜单 | 行为 |
 |------|------|
-| 打开窗口 | 显示 WebView |
-| 打开网页 | 系统浏览器 |
+| 打开网页 | 系统浏览器打开 WebUI |
 | 开机自启 | `HKCU\...\Run`，值名 `EADK SSH Bridge`（启动 desktop） |
 | 退出 | 结束 desktop 与其拉起的 manager |
 

@@ -6,9 +6,9 @@
 
 ## 快速开始
 
-1. 保持本目录完整（两个 exe + 全部 DLL + `WebView2Loader.dll`）。
-2. 仅后端：`run.bat` 或 `ssh_bridge_manager.exe`（控制台，无托盘/WebView）
-3. WebView + 托盘：双击 `ssh_bridge_desktop.exe`（自动拉起无窗口 manager；关窗进托盘）
+1. 保持本目录完整（两个 exe + 全部 DLL；`WebView2Loader.dll` 仅 `windows_manager` 需要时可忽略）。
+2. 仅后端：`run.bat` 或 `ssh_bridge_manager.exe`（控制台，无托盘）
+3. 托盘入口：双击 `ssh_bridge_desktop.exe`（拉起无窗口 manager，浏览器打开 WebUI）
 
 ## 配置
 
