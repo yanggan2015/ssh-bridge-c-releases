@@ -9,7 +9,8 @@
         "log_enabled": true,
         "work_dir": "",
         "log_dir": "",
-        "http_port": 18081
+        "http_port": 18081,
+        "alias": ""
     },
     "inbound_ssh": {
         "enable": true,
@@ -23,8 +24,14 @@
         "create_board_dirs": true,
         "allow_write": true
     },
+    "nfs": {
+        "enable": false,
+        "export_alias": "/share",
+        "uid": 0,
+        "gid": 0
+    },
     "tunnel": {
-        "server_addr": "39.97.234.200",
+        "server_addr": "sshbridge.online",
         "server_port": 7321,
         "token": "sdafsdafdsnvsdafsdfsdafsdavsavso23oy47r32trvnasbhguyfgbfnahuinhyvgrhn",
         "dashboard_port": 7322,
@@ -37,7 +44,7 @@
         "last_remote_port": 0,
         "inbound_ssh_remote_port": 0,
         "last_inbound_ssh_remote_port": 0,
-        "proxy_name": "ssh-bridge",
+        "proxy_name": "",
         "map_inbound_ssh": false,
         "exe_path": ""
     },
